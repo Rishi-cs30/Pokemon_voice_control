@@ -1,7 +1,14 @@
+###############################################################################
+#Title: Pokémon Adventure
+#Version: 01
+###############################################################################
+
 import random
+
 
 # Class to represent a Pokémon
 class Pokemon:
+
     def __init__(self, name, pokemon_type, health):
         self.name = name
         self.type = pokemon_type
@@ -10,8 +17,10 @@ class Pokemon:
     def __str__(self):
         return f"{self.name} (Type: {self.type}, Health: {self.health})"
 
+
 # Class to represent the Trainer
 class Trainer:
+
     def __init__(self, name):
         self.name = name
         self.pokemon_bag = []
@@ -28,16 +37,30 @@ class Trainer:
             for idx, pokemon in enumerate(self.pokemon_bag, 1):
                 print(f"{idx}. {pokemon}")
 
+
 # Class to represent the Game
 class Game:
+
     def __init__(self):
         self.trainer = Trainer(input("Enter your name, Trainer: "))
         # Wild Pokémon dictionary with name as key and type/health as value
         self.wild_pokemon_dict = {
-            "Pikachu": {"type": "Electric", "health": 50},
-            "Charmander": {"type": "Fire", "health": 60},
-            "Squirtle": {"type": "Water", "health": 55},
-            "Bulbasaur": {"type": "Grass", "health": 58},
+            "Pikachu": {
+                "type": "Electric",
+                "health": 50
+            },
+            "Charmander": {
+                "type": "Fire",
+                "health": 60
+            },
+            "Squirtle": {
+                "type": "Water",
+                "health": 55
+            },
+            "Bulbasaur": {
+                "type": "Grass",
+                "health": 58
+            },
         }
 
     def start_game(self):
@@ -61,8 +84,10 @@ class Game:
 
     def wild_pokemon_encounter(self):
         # Randomly select a Pokémon from the dictionary
-        pokemon_name, pokemon_stats = random.choice(list(self.wild_pokemon_dict.items()))
-        wild_pokemon = Pokemon(pokemon_name, pokemon_stats["type"], pokemon_stats["health"])
+        pokemon_name, pokemon_stats = random.choice(
+            list(self.wild_pokemon_dict.items()))
+        wild_pokemon = Pokemon(pokemon_name, pokemon_stats["type"],
+                               pokemon_stats["health"])
         print(f"\nA wild {wild_pokemon.name} appeared!")
         while True:
             action = input("Do you want to catch it? (yes/no): ").lower()
@@ -78,6 +103,7 @@ class Game:
                 break
             else:
                 print("Invalid input. Please type 'yes' or 'no'.")
+
 
 # Initialize and start the game
 if __name__ == "__main__":
