@@ -5,5 +5,7 @@ description = ""
 authors = ["Your Name <you@example.com>"]
 requires-python = ">=3.11"
 dependencies = [
+    "fuzzywuzzy>=0.18.0",
     "pyttsx3>=2.98",
+    "speechrecognition>=3.13.0",
 ]

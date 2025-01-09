@@ -1,14 +1,17 @@
 import random
 import pyttsx3
+import speech_recognition as sr
+from fuzzywuzzy import process
 
 # Initialize pyttsx3 engine
 engine = pyttsx3.init()
-
-# Setting properties 
 engine.setProperty('rate', 150)  # Speed of speech
-engine.setProperty('volume', 1)  # Volume level (1.0)
+engine.setProperty('volume', 1)  # Volume level (0.0 to 1.0)
 
-# Pokemon dictionary with various Pokemon
+# Initialize speech recognizer
+recognizer = sr.Recognizer()
+
+# Pokémon dictionary
 pokemon_dict = {
     'Pikachu': {'type': 'Electric', 'health': 35, 'moves': ['Thunder Shock', 'Quick Attack']},
     'Charmander': {'type': 'Fire', 'health': 39, 'moves': ['Ember', 'Scratch']},
@@ -31,8 +34,35 @@ type_chart = {
 }
 
 def speak(text):
-    engine.say(text)
+    print(text)  # Print the text to the console
+    engine.say(text)  # Speak the text
     engine.runAndWait()
+
+def listen():
+    """Capture voice input and return as text."""
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source)  # Adjust to background noise
+        speak("Listening for your response...")
+        try:
+            audio = recognizer.listen(source, timeout=5)
+            command = recognizer.recognize_google(audio)
+            speak(f"You said: {command}")
+            return command.lower()
+        except sr.UnknownValueError:
+            speak("Sorry, I didn't catch that.")
+        except sr.RequestError:
+            speak("Speech recognition service is unavailable.")
+        except sr.WaitTimeoutError:
+            speak("You took too long to respond.")
+        return None
+
+def match_command(user_input, options, threshold=80):
+    """Match user input to the closest valid option with at least threshold% similarity."""
+    if user_input:
+        match, confidence = process.extractOne(user_input, options)
+        if confidence >= threshold:
+            return match
+    return None
 
 class Pokemon:
     def __init__(self, name, type_, health, moves):
@@ -62,9 +92,14 @@ class Player:
         for i, p in enumerate(self.pokemon):
             if not p.is_fainted():
                 speak(f"{i + 1}. {p}")
-        choice = int(input("Choose your Pokémon by number: ")) - 1
-        if 0 <= choice < len(self.pokemon) and not self.pokemon[choice].is_fainted():
-            return self.pokemon[choice]
+        speak("Say the number of the Pokémon you want to choose.")
+        command = listen()
+        try:
+            choice = int(command) - 1
+            if 0 <= choice < len(self.pokemon) and not self.pokemon[choice].is_fainted():
+                return self.pokemon[choice]
+        except (ValueError, TypeError):
+            pass
         speak("Invalid choice.")
         return None
 
@@ -77,7 +112,6 @@ class Player:
             speak(f"- {p}")
 
     def remove_fainted_pokemon(self):
-        # Remove Pokemon with 0 health from the team
         self.pokemon = [p for p in self.pokemon if not p.is_fainted()]
 
 class Game:
@@ -95,16 +129,15 @@ class Game:
         while not player_pokemon.is_fainted() and not wild_pokemon.is_fainted():
             speak(f"Your {player_pokemon} vs Wild {wild_pokemon}")
 
-            # Player's turn
             speak("Your moves:")
             for i, move in enumerate(player_pokemon.moves):
                 speak(f"{i + 1}. {move}")
-            move_choice = int(input("Choose a move: ")) - 1
-
-            if 0 <= move_choice < len(player_pokemon.moves):
-                damage = self.calculate_damage(player_pokemon, wild_pokemon, player_pokemon.moves[move_choice])
+            command = listen()
+            matched_move = match_command(command, player_pokemon.moves)
+            if matched_move:
+                damage = self.calculate_damage(player_pokemon, wild_pokemon, matched_move)
                 wild_pokemon.health -= damage
-                speak(f"{player_pokemon.name} used {player_pokemon.moves[move_choice]} and dealt {damage} damage!")
+                speak(f"{player_pokemon.name} used {matched_move} and dealt {damage} damage!")
             else:
                 speak("Invalid move choice.")
 
@@ -113,7 +146,6 @@ class Game:
                 self.player.score += 10
                 break
 
-            # Wild Pokemon's turn
             wild_move = random.choice(wild_pokemon.moves)
             damage = self.calculate_damage(wild_pokemon, player_pokemon, wild_move)
             player_pokemon.health -= damage
@@ -123,85 +155,63 @@ class Game:
                 speak(f"Your {player_pokemon.name} fainted!")
                 break
 
-        # Remove any fainted Pokemon from the player's team
         self.player.remove_fainted_pokemon()
 
     def explore_wild(self):
         speak("Exploring the wild...")
 
-        # Randomly select a wild Pokemon from pokemon_dict
         wild_pokemon_name = random.choice(list(pokemon_dict.keys()))
         wild_pokemon_data = pokemon_dict[wild_pokemon_name]
         wild_pokemon = Pokemon(wild_pokemon_name, wild_pokemon_data['type'], wild_pokemon_data['health'], wild_pokemon_data['moves'])
 
         speak(f"A wild {wild_pokemon.name} appeared!")
+        speak("Say 'catch' to catch it or 'fight' to battle it.")
+        command = listen()
+        matched_command = match_command(command, ["catch", "fight"])
 
-        choice = input("Do you want to (1) Catch or (2) Fight the Pokémon? ")
-
-        if choice == "1":
-            if random.random() < 0.8:  # 80% chance to catch
+        if matched_command == "catch":
+            if random.random() < 0.5:
                 speak(f"Congratulations! You caught the wild {wild_pokemon.name}!")
                 self.player.pokemon.append(wild_pokemon)
             else:
                 speak(f"Oh no! The wild {wild_pokemon.name} escaped!")
-        elif choice == "2":
+        elif matched_command == "fight":
             player_pokemon = self.player.choose_pokemon()
             if player_pokemon:
                 self.battle(player_pokemon, wild_pokemon)
         else:
             speak("Invalid choice. The wild Pokémon ran away.")
 
-    def gym_challenge(self):
-        speak("Welcome to the Pewter Gym!")
-        gym_leader = "Brock"
-        gym_leader_pokemon = Pokemon("Onix", "Rock", 60, ["Rock Throw", "Bind", "Tackle"])
-        speak(f"{gym_leader} challenges you with {gym_leader_pokemon}!")
-
-        player_pokemon = self.player.choose_pokemon()
-        if player_pokemon:
-            self.battle(player_pokemon, gym_leader_pokemon)
-            if gym_leader_pokemon.is_fainted():
-                self.player.badges.append("Boulder Badge")
-                self.player.score += 20
-                speak(f"Congratulations! You earned the Boulder Badge.")
-            else:
-                speak("You lost! Try again.")
-
     def start(self):
         speak("Welcome to the Pokémon Adventure Game!")
         name = input("Enter your name: ")
         self.player = Player(name)
 
-        # Add starter Pokemon
         starter = Pokemon("Charmander", "Fire", 50, ["Ember", "Scratch", "Growl"])
         self.player.pokemon.append(starter)
 
         speak(f"Hello {self.player.name}! You received your starter Pokémon: {starter}")
 
         while True:
-            speak("\nWhat would you like to do?")
-            speak("1. Explore the wild")
-            speak("2. Challenge the Gym")
-            speak("3. View score and badges")
-            speak("4. View Pokémon")
-            speak("5. Exit game")
-            choice = input("Choose an option: ")
+            speak("What would you like to do?")
+            speak("Say 'explore', 'gym', 'score', 'view', or 'exit'.")
+            command = listen()
+            matched_command = match_command(command, ["explore", "gym", "score", "view", "exit"])
 
-            if choice == "1":
+            if matched_command == "explore":
                 self.explore_wild()
-            elif choice == "2":
-                self.gym_challenge()
-            elif choice == "3":
+            elif matched_command == "gym":
+                speak("Gym challenges are not implemented yet.")
+            elif matched_command == "score":
                 speak(f"Score: {self.player.score}")
-                speak(f"Badges: {', '.join(self.player.badges) if self.player.badges else 'None'}")
-            elif choice == "4":
+            elif matched_command == "view":
                 self.player.view_pokemon()
-            elif choice == "5":
+            elif matched_command == "exit":
                 speak("Thanks for playing!")
                 break
             else:
                 speak("Invalid choice. Try again.")
 
-# Starting the game
+# Start the game
 game = Game()
 game.start()
