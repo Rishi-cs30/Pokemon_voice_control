@@ -1,111 +1,207 @@
-###############################################################################
-#Title: Pokémon Adventure
-#Version: 01
-###############################################################################
-
 import random
+import pyttsx3
 
+# Initialize pyttsx3 engine
+engine = pyttsx3.init()
 
-# Class to represent a Pokémon
+# Setting properties 
+engine.setProperty('rate', 150)  # Speed of speech
+engine.setProperty('volume', 1)  # Volume level (1.0)
+
+# Pokemon dictionary with various Pokemon
+pokemon_dict = {
+    'Pikachu': {'type': 'Electric', 'health': 35, 'moves': ['Thunder Shock', 'Quick Attack']},
+    'Charmander': {'type': 'Fire', 'health': 39, 'moves': ['Ember', 'Scratch']},
+    'Bulbasaur': {'type': 'Grass', 'health': 45, 'moves': ['Vine Whip', 'Tackle']},
+    'Squirtle': {'type': 'Water', 'health': 44, 'moves': ['Water Gun', 'Tackle']},
+    'Eevee': {'type': 'Normal', 'health': 55, 'moves': ['Tackle', 'Quick Attack']},
+    'Jigglypuff': {'type': 'Fairy', 'health': 115, 'moves': ['Sing', 'Pound']},
+    'Meowth': {'type': 'Normal', 'health': 40, 'moves': ['Scratch', 'Bite']},
+    'Psyduck': {'type': 'Water', 'health': 50, 'moves': ['Water Gun', 'Confusion']},
+    'Magikarp': {'type': 'Water', 'health': 20, 'moves': ['Splash', 'Tackle']},
+    'Gengar': {'type': 'Ghost/Poison', 'health': 60, 'moves': ['Lick', 'Shadow Ball']}
+}
+
+# Type effectiveness chart
+type_chart = {
+    "Water": {"Fire": 2, "Rock": 2, "Grass": 0.5},
+    "Fire": {"Grass": 2, "Water": 0.5, "Rock": 0.5},
+    "Grass": {"Water": 2, "Rock": 2, "Fire": 0.5},
+    "Rock": {"Fire": 2, "Water": 0.5, "Grass": 0.5}
+}
+
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
 class Pokemon:
-
-    def __init__(self, name, pokemon_type, health):
+    def __init__(self, name, type_, health, moves):
         self.name = name
-        self.type = pokemon_type
+        self.type = type_
         self.health = health
+        self.moves = moves
 
     def __str__(self):
-        return f"{self.name} (Type: {self.type}, Health: {self.health})"
+        return f"{self.name} ({self.type}) - HP: {self.health}"
 
+    def is_fainted(self):
+        return self.health <= 0
 
-# Class to represent the Trainer
-class Trainer:
-
+class Player:
     def __init__(self, name):
         self.name = name
-        self.pokemon_bag = []
+        self.pokemon = []
+        self.badges = []
+        self.score = 0
 
-    def catch_pokemon(self, pokemon):
-        self.pokemon_bag.append(pokemon)
-        print(f"{pokemon.name} was added to your bag!")
+    def choose_pokemon(self):
+        if not self.pokemon:
+            speak("You have no Pokémon left to fight!")
+            return None
+        speak("Your Pokémon:")
+        for i, p in enumerate(self.pokemon):
+            if not p.is_fainted():
+                speak(f"{i + 1}. {p}")
+        choice = int(input("Choose your Pokémon by number: ")) - 1
+        if 0 <= choice < len(self.pokemon) and not self.pokemon[choice].is_fainted():
+            return self.pokemon[choice]
+        speak("Invalid choice.")
+        return None
 
     def view_pokemon(self):
-        if not self.pokemon_bag:
-            print("Your bag is empty!")
-        else:
-            print("Your Pokémon:")
-            for idx, pokemon in enumerate(self.pokemon_bag, 1):
-                print(f"{idx}. {pokemon}")
+        if not self.pokemon:
+            speak("You don't have any Pokémon yet!")
+            return
+        speak("Your Pokémon:")
+        for p in self.pokemon:
+            speak(f"- {p}")
 
+    def remove_fainted_pokemon(self):
+        # Remove Pokemon with 0 health from the team
+        self.pokemon = [p for p in self.pokemon if not p.is_fainted()]
 
-# Class to represent the Game
 class Game:
-
     def __init__(self):
-        self.trainer = Trainer(input("Enter your name, Trainer: "))
-        # Wild Pokémon dictionary with name as key and type/health as value
-        self.wild_pokemon_dict = {
-            "Pikachu": {
-                "type": "Electric",
-                "health": 50
-            },
-            "Charmander": {
-                "type": "Fire",
-                "health": 60
-            },
-            "Squirtle": {
-                "type": "Water",
-                "health": 55
-            },
-            "Bulbasaur": {
-                "type": "Grass",
-                "health": 58
-            },
-        }
+        self.player = None
 
-    def start_game(self):
-        print(f"Welcome, {self.trainer.name}, to the Pokémon Adventure!")
+    def calculate_damage(self, attacker, defender, move):
+        base_damage = random.randint(10, 20)
+        type_effectiveness = type_chart.get(attacker.type, {}).get(defender.type, 1)
+        return int(base_damage * type_effectiveness)
+
+    def battle(self, player_pokemon, wild_pokemon):
+        speak(f"A wild {wild_pokemon} appeared!")
+
+        while not player_pokemon.is_fainted() and not wild_pokemon.is_fainted():
+            speak(f"Your {player_pokemon} vs Wild {wild_pokemon}")
+
+            # Player's turn
+            speak("Your moves:")
+            for i, move in enumerate(player_pokemon.moves):
+                speak(f"{i + 1}. {move}")
+            move_choice = int(input("Choose a move: ")) - 1
+
+            if 0 <= move_choice < len(player_pokemon.moves):
+                damage = self.calculate_damage(player_pokemon, wild_pokemon, player_pokemon.moves[move_choice])
+                wild_pokemon.health -= damage
+                speak(f"{player_pokemon.name} used {player_pokemon.moves[move_choice]} and dealt {damage} damage!")
+            else:
+                speak("Invalid move choice.")
+
+            if wild_pokemon.is_fainted():
+                speak(f"The wild {wild_pokemon.name} fainted!")
+                self.player.score += 10
+                break
+
+            # Wild Pokemon's turn
+            wild_move = random.choice(wild_pokemon.moves)
+            damage = self.calculate_damage(wild_pokemon, player_pokemon, wild_move)
+            player_pokemon.health -= damage
+            speak(f"The wild {wild_pokemon.name} used {wild_move} and dealt {damage} damage!")
+
+            if player_pokemon.is_fainted():
+                speak(f"Your {player_pokemon.name} fainted!")
+                break
+
+        # Remove any fainted Pokemon from the player's team
+        self.player.remove_fainted_pokemon()
+
+    def explore_wild(self):
+        speak("Exploring the wild...")
+
+        # Randomly select a wild Pokemon from pokemon_dict
+        wild_pokemon_name = random.choice(list(pokemon_dict.keys()))
+        wild_pokemon_data = pokemon_dict[wild_pokemon_name]
+        wild_pokemon = Pokemon(wild_pokemon_name, wild_pokemon_data['type'], wild_pokemon_data['health'], wild_pokemon_data['moves'])
+
+        speak(f"A wild {wild_pokemon.name} appeared!")
+
+        choice = input("Do you want to (1) Catch or (2) Fight the Pokémon? ")
+
+        if choice == "1":
+            if random.random() < 0.8:  # 80% chance to catch
+                speak(f"Congratulations! You caught the wild {wild_pokemon.name}!")
+                self.player.pokemon.append(wild_pokemon)
+            else:
+                speak(f"Oh no! The wild {wild_pokemon.name} escaped!")
+        elif choice == "2":
+            player_pokemon = self.player.choose_pokemon()
+            if player_pokemon:
+                self.battle(player_pokemon, wild_pokemon)
+        else:
+            speak("Invalid choice. The wild Pokémon ran away.")
+
+    def gym_challenge(self):
+        speak("Welcome to the Pewter Gym!")
+        gym_leader = "Brock"
+        gym_leader_pokemon = Pokemon("Onix", "Rock", 60, ["Rock Throw", "Bind", "Tackle"])
+        speak(f"{gym_leader} challenges you with {gym_leader_pokemon}!")
+
+        player_pokemon = self.player.choose_pokemon()
+        if player_pokemon:
+            self.battle(player_pokemon, gym_leader_pokemon)
+            if gym_leader_pokemon.is_fainted():
+                self.player.badges.append("Boulder Badge")
+                self.player.score += 20
+                speak(f"Congratulations! You earned the Boulder Badge.")
+            else:
+                speak("You lost! Try again.")
+
+    def start(self):
+        speak("Welcome to the Pokémon Adventure Game!")
+        name = input("Enter your name: ")
+        self.player = Player(name)
+
+        # Add starter Pokemon
+        starter = Pokemon("Charmander", "Fire", 50, ["Ember", "Scratch", "Growl"])
+        self.player.pokemon.append(starter)
+
+        speak(f"Hello {self.player.name}! You received your starter Pokémon: {starter}")
+
         while True:
-            print("\nMain Menu:")
-            print("1. Wild Pokémon Encounter")
-            print("2. View Caught Pokémon")
-            print("3. Exit Game")
-            choice = input("Choose an option: ").lower()
+            speak("\nWhat would you like to do?")
+            speak("1. Explore the wild")
+            speak("2. Challenge the Gym")
+            speak("3. View score and badges")
+            speak("4. View Pokémon")
+            speak("5. Exit game")
+            choice = input("Choose an option: ")
 
-            if choice in ["1", "wild pokemon encounter"]:
-                self.wild_pokemon_encounter()
-            elif choice in ["2", "view caught pokemon"]:
-                self.trainer.view_pokemon()
-            elif choice in ["3", "exit game"]:
-                print("Thanks for playing! Goodbye!")
+            if choice == "1":
+                self.explore_wild()
+            elif choice == "2":
+                self.gym_challenge()
+            elif choice == "3":
+                speak(f"Score: {self.player.score}")
+                speak(f"Badges: {', '.join(self.player.badges) if self.player.badges else 'None'}")
+            elif choice == "4":
+                self.player.view_pokemon()
+            elif choice == "5":
+                speak("Thanks for playing!")
                 break
             else:
-                print("Invalid choice, please try again.")
+                speak("Invalid choice. Try again.")
 
-    def wild_pokemon_encounter(self):
-        # Randomly select a Pokémon from the dictionary
-        pokemon_name, pokemon_stats = random.choice(
-            list(self.wild_pokemon_dict.items()))
-        wild_pokemon = Pokemon(pokemon_name, pokemon_stats["type"],
-                               pokemon_stats["health"])
-        print(f"\nA wild {wild_pokemon.name} appeared!")
-        while True:
-            action = input("Do you want to catch it? (yes/no): ").lower()
-            if action == "yes":
-                if random.random() > 0.5:
-                    print(f"Success! You caught {wild_pokemon.name}.")
-                    self.trainer.catch_pokemon(wild_pokemon)
-                else:
-                    print(f"{wild_pokemon.name} escaped!")
-                break
-            elif action == "no":
-                print(f"You let {wild_pokemon.name} go.")
-                break
-            else:
-                print("Invalid input. Please type 'yes' or 'no'.")
-
-
-# Initialize and start the game
-if __name__ == "__main__":
-    game = Game()
-    game.start_game()
+# Starting the game
+game = Game()
+game.start()
