@@ -1,19 +1,34 @@
-Version 1.0(24th December)
-- Added: 
-  - Main menu with the following options:  
-    - Wild Pokemon encounter.  
-    - View Caught Pokemon.  
-    - exit Game.  
-  - Trainer and Pokemon classes to represent the player and individual Pokemon.  
-  - Wild Pokemon list implemented as a dictionary with attributes (type, health).  
-  - Random Pokemon encounter system with catch mechanics, random success rate.  
-  - Bag system for storing and viewing captured Pokemon.  
+Added:
 
-- Removed
-  - N/A (Initial version) 
+Added storytelling elements for the introduction and gym challenges.
 
-- Changed 
-  - N/A (Initial version)
+Added three gyms with unique Gym Leaders, Pokemon, and badges: Pewter Gym, Cerulean Gym, and Vermilion Gym.
 
+Changed:
 
+Simple and static text or number based input to dynamic, bot text and number based input for selecting options.
+
+Pokemon fainting logic updated to automatically remove fainted Pokemon from the player's team.
+
+Damage mechanics simplified to use fixed values for player and gym leader Pokemon.
+
+Improved logic for moves and damage during gym battles.
+
+Pokemon fainting removes them from the player’s bag.
+
+Randomized Pokémon lists for starter selection and wild encounters.
+
+Players select moves for their Pokémon during battles. Each move deals dynamic damage to opponents.
+
+Removed:
+
+Fixed starter options (Pikachu, Charmander, Bulbasaur) were replaced with dynamic options.
+
+Redundant Logic in Wild Encounters:
+Simplified Pokemon catching and battle mechanics for a smoother player experience.
+Placeholder Gym Feature:
+
+Removed the message for unavailable gym challenges; full gym functionality is now implemented.
+
+Removed voice based system.
 
