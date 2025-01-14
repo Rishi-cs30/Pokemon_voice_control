@@ -61,6 +61,8 @@ class Player:
             for p in self.pokemon_bag:
                 print(p)
 
+
+
 class Gym:
     def __init__(self, name, leader, badge, leader_pokemon):
         self.name = name
