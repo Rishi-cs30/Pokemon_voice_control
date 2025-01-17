@@ -4,11 +4,13 @@ Added storytelling elements for the introduction and gym challenges.
 
 Added three gyms with unique Gym Leaders, Pokemon, and badges: Pewter Gym, Cerulean Gym, and Vermilion Gym.
 
+Added a winning Condition, when player defeats all the gyms player wins.
+
 Changed:
 
 Simple and static text or number based input to dynamic, bot text and number based input for selecting options.
 
-Pokemon fainting logic updated to automatically remove fainted Pokemon from the player's team.
+Added a message that pokemon is in the pokemon center.
 
 Damage mechanics simplified to use fixed values for player and gym leader Pokemon.
 
@@ -31,4 +33,6 @@ Placeholder Gym Feature:
 Removed the message for unavailable gym challenges; full gym functionality is now implemented.
 
 Removed voice based system.
+
+
 
